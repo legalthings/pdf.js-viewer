@@ -1,0 +1,21 @@
+{
+  "name": "pdf.js-viewer",
+  "main": "pdf.js",
+  "homepage": "http://github.com/legalthings/pdf.js-viewer",
+  "authors": [
+    "Arnold Daniels <arnold@jasny.net>"
+  ],
+  "description": "pdf.js build with viewer",
+  "keywords": [
+    "pdf"
+  ],
+  "license": "Apache2",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "spec",
+    "**/*.spec.js"
+  ]
+}
+
