@@ -1,0 +1,27 @@
+language: node_js
+node_js:
+  - "0.10"
+sudo: false
+
+branches:
+  only:
+  - master
+
+env:
+  matrix:
+  - PDFJS_VERSION=v1.1.215
+
+install: |
+  git clone https://github.com/mozilla/pdf.js.git "$HOME/pdf.js" -b "$PDFJS_VERSION"
+  cd "$HOME/pdf.js"
+  npm install
+  node make generic
+
+after_install:
+- cp -a "$HOME/pdf.js/build/generic/build" "$TRAVIS_BUILD_DIR/source"
+
+script:
+
+
+after_success:
+  
