@@ -4,14 +4,14 @@
 
 This is a build version of the PDF.js, including the viewer.
 
-See https://github.com/legalthings/pdf.js-dist for learning and contributing.
-
 
 ## Installation
 
     bower install pdf.js-viewer
 
 ## Usage
+
+Include `viewer.html` using [SSI](http://httpd.apache.org/docs/2.4/howto/ssi.html) or your favorite templating system.
 
 ```html
 <html>
@@ -23,7 +23,8 @@ See https://github.com/legalthings/pdf.js-dist for learning and contributing.
     <style>
       html, body {
         height: 100%;
-        width: 100%;
+        margin: 0;
+        padding: 0;
       }
     </style>
     
@@ -33,7 +34,9 @@ See https://github.com/legalthings/pdf.js-dist for learning and contributing.
   </head>
 
   <body>
-    <!--#include virtual="bower_components/pdf.js-viewer/viewer.html" --> 
+    <div class="pdfjs">
+      <!--#include virtual="bower_components/pdf.js-viewer/viewer.html" --> 
+    </div>
   </body>
 </html>
 ```
