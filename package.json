@@ -21,7 +21,7 @@
   "homepage": "https://github.com/legalthings/pdf.js-dist#readme",
   "devDependencies": {
     "grunt": "^0.4.5",
-    "css-prefix": "git+https://github.com/moesjarraf/css-prefix.git#0.0.2+moesjarraf.2"
+    "css-prefix": "git+https://github.com/moesjarraf/css-prefix.git#0.0.2+moesjarraf.3"
   }
 }
 

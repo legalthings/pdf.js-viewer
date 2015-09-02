@@ -56898,7 +56898,12 @@ function webViewerInitialized() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', webViewerLoad, true);
+// document.addEventListener('DOMContentLoaded', webViewerLoad, true);
+PDFJS.webViewerLoad = function (src) {
+  if (src) DEFAULT_URL = src;
+
+  webViewerLoad();
+}
 
 document.addEventListener('pagerendered', function (e) {
   var pageNumber = e.detail.pageNumber;

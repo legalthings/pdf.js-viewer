@@ -27,16 +27,16 @@ Include `viewer.html` using [SSI](http://httpd.apache.org/docs/2.4/howto/ssi.htm
         padding: 0;
       }
     </style>
-    
-    <script>
-      PDFJS.webViewerLoad('some-document.pdf');
-    </script>
   </head>
 
   <body>
     <div class="pdfjs">
       <!--#include virtual="bower_components/pdf.js-viewer/viewer.html" --> 
     </div>
+
+    <script>
+      PDFJS.webViewerLoad('some-document.pdf');
+    </script>
   </body>
 </html>
 ```
