@@ -3,6 +3,7 @@
   "main": "pdf.js",
   "homepage": "http://github.com/legalthings/pdf.js-viewer",
   "authors": [
+    "LegalThings <info@legalthings.net>",
     "Arnold Daniels <arnold@jasny.net>"
   ],
   "description": "pdf.js build with viewer",
