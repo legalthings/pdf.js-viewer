@@ -57179,6 +57179,9 @@ window.addEventListener('pagechange', function pagechange(evt) {
 }, true);
 
 function handleMouseWheel(evt) {
+  // Ignore mousewheel event if pdfViewer isn't loaded
+  if (!PDFViewerApplication.pdfViewer) return;
+  
   var MOUSE_WHEEL_DELTA_FACTOR = 40;
   var ticks = (evt.type === 'DOMMouseScroll') ? -evt.detail :
               evt.wheelDelta / MOUSE_WHEEL_DELTA_FACTOR;
