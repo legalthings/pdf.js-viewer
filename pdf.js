@@ -48482,6 +48482,7 @@ if (!PDFJS.workerSrc && typeof document !== 'undefined') {
   })();
 }
 
+
 /* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 /* Copyright 2012 Mozilla Foundation
@@ -51176,7 +51177,7 @@ var PDFLinkService = (function () {
      * @returns {number}
      */
     get pagesCount() {
-      return this.pdfDocument.numPages;
+      return this.pdfDocument ? this.pdfDocument.numPages : 0;
     },
 
     /**
@@ -55921,7 +55922,7 @@ var PDFViewerApplication = {
   },
 
   get pagesCount() {
-    return this.pdfDocument.numPages;
+    return this.pdfDocument ? this.pdfDocument.numPages : 0;
   },
 
   set page(val) {
@@ -56457,7 +56458,9 @@ var PDFViewerApplication = {
   cleanup: function pdfViewCleanup() {
     this.pdfViewer.cleanup();
     this.pdfThumbnailViewer.cleanup();
-    this.pdfDocument.cleanup();
+    if (this.pdfDocument) {
+      this.pdfDocument.cleanup();
+    }
   },
 
   forceRendering: function pdfViewForceRendering() {

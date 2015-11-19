@@ -1,0 +1,77 @@
+--- pdf.orig.js	2015-11-18 21:52:24.078627247 -0400
++++ pdf.js	2015-11-18 21:56:26.518621029 -0400
+@@ -49719,10 +49719,17 @@
+ var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
+ var DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
+ 
+-PDFJS.imageResourcesPath = './images/';
+-  PDFJS.workerSrc = '../build/pdf.worker.js';
+-  PDFJS.cMapUrl = '../web/cmaps/';
+-  PDFJS.cMapPacked = true;
++var scriptTagContainer = document.body ||
++                         document.getElementsByTagName('head')[0];
++var pdfjsSrc = scriptTagContainer.lastChild.src;
++
++if (pdfjsSrc) {
++  PDFJS.imageResourcesPath = pdfjsSrc.replace(/pdf\.js$/i, 'images/');
++  PDFJS.workerSrc = pdfjsSrc.replace(/pdf\.js$/i, 'pdf.worker.js');
++  PDFJS.cMapUrl = pdfjsSrc.replace(/pdf\.js$/i, 'cmaps/');
++}
++
++PDFJS.cMapPacked = true;
+ 
+ var mozL10n = document.mozL10n || document.webL10n;
+ 
+@@ -51170,7 +51177,7 @@
+      * @returns {number}
+      */
+     get pagesCount() {
+-      return this.pdfDocument.numPages;
++      return this.pdfDocument ? this.pdfDocument.numPages : 0;
+     },
+ 
+     /**
+@@ -55915,7 +55922,7 @@
+   },
+ 
+   get pagesCount() {
+-    return this.pdfDocument.numPages;
++    return this.pdfDocument ? this.pdfDocument.numPages : 0;
+   },
+ 
+   set page(val) {
+@@ -56451,7 +56458,9 @@
+   cleanup: function pdfViewCleanup() {
+     this.pdfViewer.cleanup();
+     this.pdfThumbnailViewer.cleanup();
+-    this.pdfDocument.cleanup();
++    if (this.pdfDocument) {
++      this.pdfDocument.cleanup();
++    }
+   },
+ 
+   forceRendering: function pdfViewForceRendering() {
+@@ -56892,7 +56901,12 @@
+   }
+ }
+ 
+-document.addEventListener('DOMContentLoaded', webViewerLoad, true);
++// document.addEventListener('DOMContentLoaded', webViewerLoad, true);
++PDFJS.webViewerLoad = function (src) {
++  if (src) DEFAULT_URL = src;
++
++  webViewerLoad();
++}
+ 
+ document.addEventListener('pagerendered', function (e) {
+   var pageNumber = e.detail.pageNumber;
+@@ -57168,6 +57182,9 @@
+ }, true);
+ 
+ function handleMouseWheel(evt) {
++  // Ignore mousewheel event if pdfViewer isn't loaded
++  if (!PDFViewerApplication.pdfViewer) return;
++  
+   var MOUSE_WHEEL_DELTA_FACTOR = 40;
+   var ticks = (evt.type === 'DOMMouseScroll') ? -evt.detail :
+               evt.wheelDelta / MOUSE_WHEEL_DELTA_FACTOR;
