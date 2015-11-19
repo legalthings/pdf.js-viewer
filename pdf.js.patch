@@ -1,6 +1,6 @@
---- pdf.orig.js	2015-11-18 21:52:24.078627247 -0400
-+++ pdf.js	2015-11-18 22:32:56.866564854 -0400
-@@ -49719,10 +49719,17 @@
+--- pdf.orig.js	2015-11-18 23:54:16.104896200 -0400
++++ pdf.js	2015-11-18 23:53:45.904896974 -0400
+@@ -10289,10 +10289,17 @@
  var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
  var DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
  
@@ -22,7 +22,7 @@
  
  var mozL10n = document.mozL10n || document.webL10n;
  
-@@ -51170,7 +51177,7 @@
+@@ -11740,7 +11747,7 @@
       * @returns {number}
       */
      get pagesCount() {
@@ -31,7 +31,7 @@
      },
  
      /**
-@@ -55915,7 +55922,7 @@
+@@ -16485,7 +16492,7 @@
    },
  
    get pagesCount() {
@@ -40,7 +40,7 @@
    },
  
    set page(val) {
-@@ -56451,7 +56458,9 @@
+@@ -17021,7 +17028,9 @@
    cleanup: function pdfViewCleanup() {
      this.pdfViewer.cleanup();
      this.pdfThumbnailViewer.cleanup();
@@ -51,7 +51,7 @@
    },
  
    forceRendering: function pdfViewForceRendering() {
-@@ -56892,7 +56901,12 @@
+@@ -17462,7 +17471,12 @@
    }
  }
  
@@ -65,7 +65,7 @@
  
  document.addEventListener('pagerendered', function (e) {
    var pageNumber = e.detail.pageNumber;
-@@ -57015,7 +57029,7 @@
+@@ -17585,7 +17599,7 @@
  });
  
  window.addEventListener('hashchange', function webViewerHashchange(evt) {
@@ -74,7 +74,7 @@
      var hash = document.location.hash.substring(1);
      if (!hash) {
        return;
-@@ -57168,6 +57182,9 @@
+@@ -17738,6 +17752,9 @@
  }, true);
  
  function handleMouseWheel(evt) {
