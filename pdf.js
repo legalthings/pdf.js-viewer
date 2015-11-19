@@ -57029,7 +57029,7 @@ window.addEventListener('resize', function webViewerResize(evt) {
 });
 
 window.addEventListener('hashchange', function webViewerHashchange(evt) {
-  if (PDFViewerApplication.pdfHistory.isHashChangeUnlocked) {
+  if (PDFViewerApplication.pdfHistory && PDFViewerApplication.pdfHistory.isHashChangeUnlocked) {
     var hash = document.location.hash.substring(1);
     if (!hash) {
       return;

@@ -1,5 +1,5 @@
 --- pdf.orig.js	2015-11-18 21:52:24.078627247 -0400
-+++ pdf.js	2015-11-18 21:56:26.518621029 -0400
++++ pdf.js	2015-11-18 22:32:56.866564854 -0400
 @@ -49719,10 +49719,17 @@
  var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
  var DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
@@ -65,6 +65,15 @@
  
  document.addEventListener('pagerendered', function (e) {
    var pageNumber = e.detail.pageNumber;
+@@ -57015,7 +57029,7 @@
+ });
+ 
+ window.addEventListener('hashchange', function webViewerHashchange(evt) {
+-  if (PDFViewerApplication.pdfHistory.isHashChangeUnlocked) {
++  if (PDFViewerApplication.pdfHistory && PDFViewerApplication.pdfHistory.isHashChangeUnlocked) {
+     var hash = document.location.hash.substring(1);
+     if (!hash) {
+       return;
 @@ -57168,6 +57182,9 @@
  }, true);
  
