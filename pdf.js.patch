@@ -1,5 +1,15 @@
---- pdf.orig.js	2015-11-18 23:54:16.104896200 -0400
-+++ pdf.js	2015-11-18 23:53:45.904896974 -0400
+--- pdf.orig.js	2015-11-19 00:10:27.980871274 -0400
++++ pdf.js	2015-11-19 00:09:05.996873377 -0400
+@@ -826,8 +826,8 @@
+   function getL10nData(key, args, fallback) {
+     var data = gL10nData[key];
+     if (!data) {
+-      console.warn('#' + key + ' is undefined.');
+       if (!fallback) {
++        console.warn('#' + key + ' is undefined.');
+         return null;
+       }
+       data = fallback;
 @@ -10289,10 +10289,17 @@
  var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
  var DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
