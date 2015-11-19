@@ -1,96 +1,54 @@
---- pdf.orig.js	2015-11-19 00:10:27.980871274 -0400
-+++ pdf.js	2015-11-19 00:09:05.996873377 -0400
-@@ -826,8 +826,8 @@
-   function getL10nData(key, args, fallback) {
-     var data = gL10nData[key];
-     if (!data) {
--      console.warn('#' + key + ' is undefined.');
-       if (!fallback) {
-+        console.warn('#' + key + ' is undefined.');
-         return null;
-       }
-       data = fallback;
-@@ -10289,10 +10289,17 @@
- var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
- var DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
- 
--PDFJS.imageResourcesPath = './images/';
--  PDFJS.workerSrc = '../build/pdf.worker.js';
--  PDFJS.cMapUrl = '../web/cmaps/';
--  PDFJS.cMapPacked = true;
-+var scriptTagContainer = document.body ||
-+                         document.getElementsByTagName('head')[0];
-+var pdfjsSrc = scriptTagContainer.lastChild.src;
-+
-+if (pdfjsSrc) {
-+  PDFJS.imageResourcesPath = pdfjsSrc.replace(/pdf\.js$/i, 'images/');
-+  PDFJS.workerSrc = pdfjsSrc.replace(/pdf\.js$/i, 'pdf.worker.js');
-+  PDFJS.cMapUrl = pdfjsSrc.replace(/pdf\.js$/i, 'cmaps/');
-+}
-+
-+PDFJS.cMapPacked = true;
- 
- var mozL10n = document.mozL10n || document.webL10n;
- 
-@@ -11740,7 +11747,7 @@
-      * @returns {number}
-      */
-     get pagesCount() {
--      return this.pdfDocument.numPages;
-+      return this.pdfDocument ? this.pdfDocument.numPages : 0;
-     },
- 
-     /**
-@@ -16485,7 +16492,7 @@
-   },
- 
-   get pagesCount() {
--    return this.pdfDocument.numPages;
-+    return this.pdfDocument ? this.pdfDocument.numPages : 0;
-   },
- 
-   set page(val) {
-@@ -17021,7 +17028,9 @@
-   cleanup: function pdfViewCleanup() {
-     this.pdfViewer.cleanup();
-     this.pdfThumbnailViewer.cleanup();
--    this.pdfDocument.cleanup();
-+    if (this.pdfDocument) {
-+      this.pdfDocument.cleanup();
-+    }
-   },
- 
-   forceRendering: function pdfViewForceRendering() {
-@@ -17462,7 +17471,12 @@
-   }
- }
- 
--document.addEventListener('DOMContentLoaded', webViewerLoad, true);
-+// document.addEventListener('DOMContentLoaded', webViewerLoad, true);
-+PDFJS.webViewerLoad = function (src) {
-+  if (src) DEFAULT_URL = src;
-+
-+  webViewerLoad();
-+}
- 
- document.addEventListener('pagerendered', function (e) {
-   var pageNumber = e.detail.pageNumber;
-@@ -17585,7 +17599,7 @@
- });
- 
- window.addEventListener('hashchange', function webViewerHashchange(evt) {
--  if (PDFViewerApplication.pdfHistory.isHashChangeUnlocked) {
-+  if (PDFViewerApplication.pdfHistory && PDFViewerApplication.pdfHistory.isHashChangeUnlocked) {
-     var hash = document.location.hash.substring(1);
-     if (!hash) {
-       return;
-@@ -17738,6 +17752,9 @@
- }, true);
- 
- function handleMouseWheel(evt) {
-+  // Ignore mousewheel event if pdfViewer isn't loaded
-+  if (!PDFViewerApplication.pdfViewer) return;
-+  
-   var MOUSE_WHEEL_DELTA_FACTOR = 40;
-   var ticks = (evt.type === 'DOMMouseScroll') ? -evt.detail :
-               evt.wheelDelta / MOUSE_WHEEL_DELTA_FACTOR;
+829c829,831
+<       console.warn('#' + key + ' is undefined.');
+---
+>       if (Object.keys(gL10nData).length > 0) {
+>         console.warn('#' + key + ' is undefined.');
+>       }
+10292,10295c10294,10304
+< PDFJS.imageResourcesPath = './images/';
+<   PDFJS.workerSrc = '../build/pdf.worker.js';
+<   PDFJS.cMapUrl = '../web/cmaps/';
+<   PDFJS.cMapPacked = true;
+---
+> var scriptTagContainer = document.body ||
+>                          document.getElementsByTagName('head')[0];
+> var pdfjsSrc = scriptTagContainer.lastChild.src;
+> 
+> if (pdfjsSrc) {
+>   PDFJS.imageResourcesPath = pdfjsSrc.replace(/pdf\.js$/i, 'images/');
+>   PDFJS.workerSrc = pdfjsSrc.replace(/pdf\.js$/i, 'pdf.worker.js');
+>   PDFJS.cMapUrl = pdfjsSrc.replace(/pdf\.js$/i, 'cmaps/');
+> }
+> 
+> PDFJS.cMapPacked = true;
+11743c11752
+<       return this.pdfDocument.numPages;
+---
+>       return this.pdfDocument ? this.pdfDocument.numPages : 0;
+16488c16497
+<     return this.pdfDocument.numPages;
+---
+>     return this.pdfDocument ? this.pdfDocument.numPages : 0;
+17024c17033,17035
+<     this.pdfDocument.cleanup();
+---
+>     if (this.pdfDocument) {
+>       this.pdfDocument.cleanup();
+>     }
+17465c17476,17481
+< document.addEventListener('DOMContentLoaded', webViewerLoad, true);
+---
+> // document.addEventListener('DOMContentLoaded', webViewerLoad, true);
+> PDFJS.webViewerLoad = function (src) {
+>   if (src) DEFAULT_URL = src;
+> 
+>   webViewerLoad();
+> }
+17588c17604
+<   if (PDFViewerApplication.pdfHistory.isHashChangeUnlocked) {
+---
+>   if (PDFViewerApplication.pdfHistory && PDFViewerApplication.pdfHistory.isHashChangeUnlocked) {
+17740a17757,17759
+>   // Ignore mousewheel event if pdfViewer isn't loaded
+>   if (!PDFViewerApplication.pdfViewer) return;
+>   

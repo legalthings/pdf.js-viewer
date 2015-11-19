@@ -826,8 +826,10 @@ document.webL10n = (function(window, document, undefined) {
   function getL10nData(key, args, fallback) {
     var data = gL10nData[key];
     if (!data) {
-      if (!fallback) {
+      if (Object.keys(gL10nData).length > 0) {
         console.warn('#' + key + ' is undefined.');
+      }
+      if (!fallback) {
         return null;
       }
       data = fallback;
