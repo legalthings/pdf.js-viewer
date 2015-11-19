@@ -1,0 +1,11 @@
+--- pdf.worker.orig.js	2015-11-18 23:55:14.880894692 -0400
++++ pdf.worker.js	2015-11-18 22:59:59.878523230 -0400
+@@ -1684,7 +1684,7 @@
+         pendingRequest.expectedStatus = 200;
+       }
+ 
+-      if (args.onProgressiveData) {
++      if (args.onProgressiveData && typeof xhr.mozBackgroundRequest !== 'undefined') {
+         // Some legacy browsers might throw an exception.
+         try {
+           xhr.responseType = 'moz-chunked-arraybuffer';

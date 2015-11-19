@@ -1,4 +1,4 @@
 /source
 /node_modules
 
-pdf.orig.js
+*.orig.js

@@ -1684,7 +1684,7 @@ var NetworkManager = (function NetworkManagerClosure() {
         pendingRequest.expectedStatus = 200;
       }
 
-      if (args.onProgressiveData) {
+      if (args.onProgressiveData && typeof xhr.mozBackgroundRequest !== 'undefined') {
         // Some legacy browsers might throw an exception.
         try {
           xhr.responseType = 'moz-chunked-arraybuffer';
