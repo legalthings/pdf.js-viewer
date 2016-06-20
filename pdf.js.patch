@@ -1,5 +1,5 @@
---- pdf.orig.js	2015-11-19 00:10:27.980871274 -0400
-+++ pdf.js	2015-11-19 00:27:00.668845816 -0400
+--- pdf.orig.js	2016-06-20 13:34:52.370608323 +0200
++++ pdf.js	2016-06-20 13:35:36.670757885 +0200
 @@ -826,7 +826,9 @@
    function getL10nData(key, args, fallback) {
      var data = gL10nData[key];
@@ -98,6 +98,24 @@
      var hash = document.location.hash.substring(1);
      if (!hash) {
        return;
+@@ -17598,7 +17618,7 @@
+   }
+ });
+ 
+-window.addEventListener('change', function webViewerChange(evt) {
++/*window.addEventListener('change', function webViewerChange(evt) {
+   var files = evt.target.files;
+   if (!files || files.length === 0) {
+     return;
+@@ -17627,7 +17647,7 @@
+     setAttribute('hidden', 'true');
+   document.getElementById('download').setAttribute('hidden', 'true');
+   document.getElementById('secondaryDownload').setAttribute('hidden', 'true');
+-}, true);
++}, true);*/
+ 
+ function selectScaleOption(value) {
+   var options = document.getElementById('scaleSelect').options;
 @@ -17738,6 +17758,9 @@
  }, true);
  

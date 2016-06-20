@@ -17618,7 +17618,7 @@ window.addEventListener('hashchange', function webViewerHashchange(evt) {
   }
 });
 
-window.addEventListener('change', function webViewerChange(evt) {
+/*window.addEventListener('change', function webViewerChange(evt) {
   var files = evt.target.files;
   if (!files || files.length === 0) {
     return;
@@ -17647,7 +17647,7 @@ window.addEventListener('change', function webViewerChange(evt) {
     setAttribute('hidden', 'true');
   document.getElementById('download').setAttribute('hidden', 'true');
   document.getElementById('secondaryDownload').setAttribute('hidden', 'true');
-}, true);
+}, true);*/
 
 function selectScaleOption(value) {
   var options = document.getElementById('scaleSelect').options;
