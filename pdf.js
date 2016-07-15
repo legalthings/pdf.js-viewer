@@ -27,6 +27,8 @@
     - Remove compatibility code for OldIE.
 */
 
+var globalScope = (typeof window === 'undefined') ? this : window;
+
 /*jshint browser: true, devel: true, es5: true, globalstrict: true */
 'use strict';
 
@@ -1084,8 +1086,6 @@ PDFJS.build = 'c9a7498';
            Promise */
 
 'use strict';
-
-var globalScope = (typeof window === 'undefined') ? this : window;
 
 var isWorker = (typeof window === 'undefined');
 
@@ -3530,12 +3530,41 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
   return PDFPageProxy;
 })();
 
+
 /**
+
  * For internal use only.
  * @ignore
  */
 var WorkerTransport = (function WorkerTransportClosure() {
   function WorkerTransport(workerInitializedCapability, pdfDataRangeTransport) {
+    var self = this;
+
+    /**
+     * Needed because workers cannot load scripts outside of the current origin (as of firefox v45).
+     * This patch does require the worker script to be served with a (Access-Control-Allow-Origin: *) header
+     * @patch
+     */
+    globalScope.cachedJSDfd = null;
+    this.loadWorkerXHR = function(url){
+      if (globalScope.cachedJSDfd) { return globalScope.cachedJSDfd; }
+      globalScope.cachedJSDfd = PDFJS.createPromiseCapability();
+
+      var xmlhttp;
+      xmlhttp = new XMLHttpRequest();
+
+      xmlhttp.onreadystatechange = function(){
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
+          var workerJSBlob = new Blob([xmlhttp.responseText], { type: 'text/javascript' });
+          globalScope.cachedJSDfd.resolve(window.URL.createObjectURL(workerJSBlob));
+        }
+      };
+
+      xmlhttp.open('GET', url, true);
+      xmlhttp.send();
+      return globalScope.cachedJSDfd.promise;
+    }
+
     this.pdfDataRangeTransport = pdfDataRangeTransport;
     this.workerInitializedCapability = workerInitializedCapability;
     this.commonObjs = new PDFObjects();
@@ -3560,42 +3589,48 @@ var WorkerTransport = (function WorkerTransportClosure() {
       try {
         // Some versions of FF can't create a worker on localhost, see:
         // https://bugzilla.mozilla.org/show_bug.cgi?id=683280
-        var worker = new Worker(workerSrc);
-        var messageHandler = new MessageHandler('main', worker);
-        this.messageHandler = messageHandler;
+        self.loadWorkerXHR(workerSrc).then(function(blob) {
+          workerSrc = PDFJS.workerSrc = blob;
 
-        messageHandler.on('test', function transportTest(data) {
-          var supportTypedArray = data && data.supportTypedArray;
-          if (supportTypedArray) {
-            this.worker = worker;
-            if (!data.supportTransfers) {
-              PDFJS.postMessageTransfers = false;
+          var worker = new Worker(workerSrc);
+          var messageHandler = new MessageHandler('main', worker);
+          self.messageHandler = messageHandler;
+
+          messageHandler.on('test', function transportTest(data) {
+            var supportTypedArray = data && data.supportTypedArray;
+            if (supportTypedArray) {
+              self.worker = worker;
+              if (!data.supportTransfers) {
+                PDFJS.postMessageTransfers = false;
+              }
+              self.setupMessageHandler(messageHandler);
+              workerInitializedCapability.resolve();
+            } else if (globalScope.PDFJS.disableWorker || typeof Worker === 'undefined') {
+              this.setupFakeWorker();
             }
-            this.setupMessageHandler(messageHandler);
-            workerInitializedCapability.resolve();
-          } else {
-            this.setupFakeWorker();
-          }
-        }.bind(this));
+          }.bind(self));
 
-        var testObj = new Uint8Array([PDFJS.postMessageTransfers ? 255 : 0]);
-        // Some versions of Opera throw a DATA_CLONE_ERR on serializing the
-        // typed array. Also, checking if we can use transfers.
-        try {
-          messageHandler.send('test', testObj, [testObj.buffer]);
-        } catch (ex) {
-          info('Cannot use postMessage transfers');
-          testObj[0] = 0;
-          messageHandler.send('test', testObj);
-        }
-        return;
+          var testObj = new Uint8Array([PDFJS.postMessageTransfers ? 255 : 0]);
+          // Some versions of Opera throw a DATA_CLONE_ERR on serializing the
+          // typed array. Also, checking if we can use transfers.
+          try {
+            messageHandler.send('test', testObj, [testObj.buffer]);
+          } catch (ex) {
+            info('Cannot use postMessage transfers');
+            testObj[0] = 0;
+            messageHandler.send('test', testObj);
+          }
+          return;
+        });
       } catch (e) {
         info('The worker has been disabled.');
       }
     }
     // Either workers are disabled, not supported or have thrown an exception.
     // Thus, we fallback to a faked worker.
-    this.setupFakeWorker();
+    if (globalScope.PDFJS.disableWorker || typeof Worker === 'undefined') {
+      this.setupFakeWorker();
+    }
   }
   WorkerTransport.prototype = {
     destroy: function WorkerTransport_destroy() {
@@ -9043,17 +9078,6 @@ PDFJS.SVGGraphics = SVGGraphics;
 
 }).call((typeof window === 'undefined') ? this : window);
 
-if (!PDFJS.workerSrc && typeof document !== 'undefined') {
-  // workerSrc is not set -- using last script url to define default location
-  PDFJS.workerSrc = (function () {
-    'use strict';
-    var scriptTagContainer = document.body ||
-                             document.getElementsByTagName('head')[0];
-    var pdfjsSrc = scriptTagContainer.lastChild.src;
-    return pdfjsSrc && pdfjsSrc.replace(/\.js$/i, '.worker.js');
-  })();
-}
-
 
 /* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
@@ -10281,37 +10305,41 @@ var PDFBug = (function PDFBugClosure() {
 
 'use strict';
 
-var DEFAULT_URL = 'compressed.tracemonkey-pldi-09.pdf';
-var DEFAULT_SCALE_DELTA = 1.1;
-var MIN_SCALE = 0.25;
-var MAX_SCALE = 10.0;
-var VIEW_HISTORY_MEMORY = 20;
-var SCALE_SELECT_CONTAINER_PADDING = 8;
-var SCALE_SELECT_PADDING = 22;
-var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
-var DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
+function initGlobalScope(callback) {
+  globalScope.DEFAULT_URL = 'compressed.tracemonkey-pldi-09.pdf';
+  globalScope.DEFAULT_SCALE_DELTA = 1.1;
+  globalScope.MIN_SCALE = 0.25;
+  globalScope.MAX_SCALE = 10.0;
+  globalScope.VIEW_HISTORY_MEMORY = 20;
+  globalScope.SCALE_SELECT_CONTAINER_PADDING = 8;
+  globalScope.SCALE_SELECT_PADDING = 22;
+  globalScope.PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
+  globalScope.DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
 
-var scriptTagContainer = document.body ||
-                         document.getElementsByTagName('head')[0];
-var pdfjsSrc = scriptTagContainer.lastChild.src;
+  globalScope.scriptTagContainer = document.body ||
+                           document.getElementsByTagName('head')[0];
+  globalScope.pdfjsSrc = scriptTagContainer.lastChild.src;
 
-if (pdfjsSrc) {
-  PDFJS.imageResourcesPath = pdfjsSrc.replace(/pdf\.js$/i, 'images/');
-  PDFJS.workerSrc = pdfjsSrc.replace(/pdf\.js$/i, 'pdf.worker.js');
-  PDFJS.cMapUrl = pdfjsSrc.replace(/pdf\.js$/i, 'cmaps/');
+  if (pdfjsSrc) {
+    PDFJS.imageResourcesPath = pdfjsSrc.replace(/pdf\.js$/i, 'images/');
+    PDFJS.workerSrc = pdfjsSrc.replace(/pdf\.js$/i, 'pdf.worker.js');
+    PDFJS.cMapUrl = pdfjsSrc.replace(/pdf\.js$/i, 'cmaps/');
+  }
+
+  PDFJS.cMapPacked = true;
+
+  globalScope.mozL10n = document.mozL10n || document.webL10n;
+
+
+  globalScope.CSS_UNITS = 96.0 / 72.0;
+  globalScope.DEFAULT_SCALE = 'auto';
+  globalScope.UNKNOWN_SCALE = 0;
+  globalScope.MAX_AUTO_SCALE = 1.25;
+  globalScope.SCROLLBAR_PADDING = 40;
+  globalScope.VERTICAL_PADDING = 5;
+
+  callback();
 }
-
-PDFJS.cMapPacked = true;
-
-var mozL10n = document.mozL10n || document.webL10n;
-
-
-var CSS_UNITS = 96.0 / 72.0;
-var DEFAULT_SCALE = 'auto';
-var UNKNOWN_SCALE = 0;
-var MAX_AUTO_SCALE = 1.25;
-var SCROLLBAR_PADDING = 40;
-var VERTICAL_PADDING = 5;
 
 // optimised CSS custom property getter/setter
 var CustomStyle = (function CustomStyleClosure() {
@@ -17479,9 +17507,11 @@ function webViewerInitialized() {
 
 // document.addEventListener('DOMContentLoaded', webViewerLoad, true);
 PDFJS.webViewerLoad = function (src) {
-  if (src) DEFAULT_URL = src;
+  initGlobalScope(function () {
+    if (src) DEFAULT_URL = src;
 
-  webViewerLoad();
+    webViewerLoad();
+  });
 }
 
 document.addEventListener('pagerendered', function (e) {
