@@ -186,65 +186,88 @@ We need to check if the viewer is initialized, before handling the event.
     +  // Ignore mousewheel event if pdfViewer isn't loaded
     +  if (!PDFViewerApplication.pdfViewer) return;
 
-#### Load code for worker using AJAX
+#### Load code for worker using AJAX if needed
 
 A [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can't use code from
-a same-origin domain. The CORS headers don't apply (they do work in some browsers, but not in all).
+a same-origin domain. The CORS headers don't apply.
 
-To get around this, the source code of the worker is fetched using AJAX and presented as blob.
+he patch will cause pdf.js to first try to create the Worker the regular way, with a URL to the JavaScript source. If
+this fails, the source if fetched using AJAX and used to create an
+[object url](https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL). If this also fails, pdf.js will go
+onto it's last resort by calling `setupFakeWorker()`.
 
- var WorkerTransport = (function WorkerTransportClosure() {
-   function WorkerTransport(workerInitializedCapability, pdfDataRangeTransport) {
-+    /**
-+     * Needed because workers cannot load scripts outside of the current origin (as of firefox v45).
-+     * This patch does require the worker script to be served with a (Access-Control-Allow-Origin: *) header
-+     * @patch
-+     */
-+    globalScope.cachedJSDfd = null;
-+    this.loadWorkerXHR = function(url){
-+      if (globalScope.cachedJSDfd) { return globalScope.cachedJSDfd; }
-+      globalScope.cachedJSDfd = PDFJS.createPromiseCapability();
-+
-+      var xmlhttp;
-+      xmlhttp = new XMLHttpRequest();
-+
-+      xmlhttp.onreadystatechange = function(){
-+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
-+          var workerJSBlob = new Blob([xmlhttp.responseText], { type: 'text/javascript' });
-+          globalScope.cachedJSDfd.resolve(window.URL.createObjectURL(workerJSBlob));
-+        }
-+      };
-+
-+      xmlhttp.open('GET', url, true);
-+      xmlhttp.send();
-+      return globalScope.cachedJSDfd.promise;
-+    }
-
-Instead of simply starting the worker, we need to get the code and than start it.
-
-+      this.loadWorkerXHR(workerSrc).then(function(blob) {
-+      workerSrc = PDFJS.workerSrc = blob;
-+
-       try {
-         // Some versions of FF can't create a worker on localhost, see:
-         // https://bugzilla.mozilla.org/show_bug.cgi?id=683280
-@@ -3589,11 +3618,16 @@
-         return;
-       } catch (e) {
-         info('The worker has been disabled.');
-+        this.setupFakeWorker();
+    +    /**
+    +     * Needed because workers cannot load scripts outside of the current origin (as of firefox v45).
+    +     * This patch does require the worker script to be served with a (Access-Control-Allow-Origin: *) header
+    +     * @patch
+    +     */
+    +    var loadWorkerXHR = function(){
+    +      var url = PDFJS.workerSrc;
+    +      var jsdfd = PDFJS.createPromiseCapability();
+    +
+    +      if (url.match(/^blob:/) || typeof URL.createObjectURL === 'undefined') {
+    +        jsdfd.reject(); // Failed loading using blob
+    +      }
+    +
+    +      var xmlhttp;
+    +      xmlhttp = new XMLHttpRequest();
+    +
+    +      xmlhttp.onreadystatechange = function(){
+    +        if (xmlhttp.readyState != 4) return;
+    +
+    +        if (xmlhttp.status == 200) {
+    +          info('Loaded worker source through XHR.');
+    +          var workerJSBlob = new Blob([xmlhttp.responseText], { type: 'text/javascript' });
+    +          jsdfd.resolve(window.URL.createObjectURL(workerJSBlob));
+    +        } else {
+    +          jsdfd.reject();
+    +        }
+    +      };
+    +
+    +      xmlhttp.open('GET', url, true);
+    +      xmlhttp.send();
+    +      return jsdfd.promise;
+    +    }
+    +
+    +    var workerError = function() {
+    +      loadWorkerXHR().then(function(blob) {
+    +        PDFJS.workerSrc = blob;
+    +        loadWorker();
+    +      }, function() {
+    +        this.setupFakeWorker();
+    +      }.bind(this));
+    +    }.bind(this);
+    +
+    
+    -    if (!globalScope.PDFJS.disableWorker && typeof Worker !== 'undefined') {
+    +    var loadWorker = function() {
+           var workerSrc = PDFJS.workerSrc;
+           if (!workerSrc) {
+             error('No PDFJS.workerSrc specified');
+    @@ -3559,6 +3603,8 @@
+             // Some versions of FF can't create a worker on localhost, see:
+             // https://bugzilla.mozilla.org/show_bug.cgi?id=683280
+             var worker = new Worker(workerSrc);
+    +        worker.onerror = workerError;
+    +
+             var messageHandler = new MessageHandler('main', worker);
+             this.messageHandler = messageHandler;
+    
+    @@ -3589,11 +3635,16 @@
+             return;
+           } catch (e) {
+             info('The worker has been disabled.');
+    +        workerError();
+           }
+    -    }
+    +    }.bind(this);
+         // Either workers are disabled, not supported or have thrown an exception.
+         // Thus, we fallback to a faked worker.
+    -    this.setupFakeWorker();
+    +    if (!globalScope.PDFJS.disableWorker && typeof Worker !== 'undefined') {
+    +      loadWorker();
+    +    } else {
+    +      this.setupFakeWorker();
+    +    }
        }
-+
-+      }.bind(this));
-     }
-
-As the worker is started async, we only start the worker on an error, when the browser doesn't support web workers or
-when it's explicitly set that we don't want to use the web worker api.
-
-     // Either workers are disabled, not supported or have thrown an exception.
-     // Thus, we fallback to a faked worker.
--    this.setupFakeWorker();
-+    if (globalScope.PDFJS.disableWorker || typeof Worker === 'undefined') {
-+      this.setupFakeWorker();
-+    }
 

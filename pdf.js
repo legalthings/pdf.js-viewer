@@ -1086,6 +1086,7 @@ PDFJS.build = 'c9a7498';
 'use strict';
 
 var globalScope = (typeof window === 'undefined') ? this : window;
+
 var isWorker = (typeof window === 'undefined');
 
 var FONT_IDENTITY_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
@@ -3535,31 +3536,6 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
  */
 var WorkerTransport = (function WorkerTransportClosure() {
   function WorkerTransport(workerInitializedCapability, pdfDataRangeTransport) {
-    /**
-     * Needed because workers cannot load scripts outside of the current origin (as of firefox v45).
-     * This patch does require the worker script to be served with a (Access-Control-Allow-Origin: *) header
-     * @patch
-     */
-    globalScope.cachedJSDfd = null;
-    this.loadWorkerXHR = function(url){
-      if (globalScope.cachedJSDfd) { return globalScope.cachedJSDfd; }
-      globalScope.cachedJSDfd = PDFJS.createPromiseCapability();
-
-      var xmlhttp;
-      xmlhttp = new XMLHttpRequest();
-
-      xmlhttp.onreadystatechange = function(){
-        if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
-          var workerJSBlob = new Blob([xmlhttp.responseText], { type: 'text/javascript' });
-          globalScope.cachedJSDfd.resolve(window.URL.createObjectURL(workerJSBlob));
-        }
-      };
-
-      xmlhttp.open('GET', url, true);
-      xmlhttp.send();
-      return globalScope.cachedJSDfd.promise;
-    }
-
     this.pdfDataRangeTransport = pdfDataRangeTransport;
     this.workerInitializedCapability = workerInitializedCapability;
     this.commonObjs = new PDFObjects();
@@ -3570,24 +3546,65 @@ var WorkerTransport = (function WorkerTransportClosure() {
     this.pagePromises = [];
     this.downloadInfoCapability = createPromiseCapability();
 
+    /**
+     * Needed because workers cannot load scripts outside of the current origin (as of firefox v45).
+     * This patch does require the worker script to be served with a (Access-Control-Allow-Origin: *) header
+     * @patch
+     */
+    var loadWorkerXHR = function(){
+      var url = PDFJS.workerSrc;
+      var jsdfd = PDFJS.createPromiseCapability();
+
+      if (url.match(/^blob:/) || typeof URL.createObjectURL === 'undefined') {
+        jsdfd.reject(); // Failed loading using blob
+      }
+
+      var xmlhttp;
+      xmlhttp = new XMLHttpRequest();
+
+      xmlhttp.onreadystatechange = function(){
+        if (xmlhttp.readyState != 4) return;
+
+        if (xmlhttp.status == 200) {
+          info('Loaded worker source through XHR.');
+          var workerJSBlob = new Blob([xmlhttp.responseText], { type: 'text/javascript' });
+          jsdfd.resolve(window.URL.createObjectURL(workerJSBlob));
+        } else {
+          jsdfd.reject();
+        }
+      };
+
+      xmlhttp.open('GET', url, true);
+      xmlhttp.send();
+      return jsdfd.promise;
+    }
+
+    var workerError = function() {
+      loadWorkerXHR().then(function(blob) {
+        PDFJS.workerSrc = blob;
+        loadWorker();
+      }, function() {
+        this.setupFakeWorker();
+      }.bind(this));
+    }.bind(this);
+
     // If worker support isn't disabled explicit and the browser has worker
     // support, create a new web worker and test if it/the browser fullfills
     // all requirements to run parts of pdf.js in a web worker.
     // Right now, the requirement is, that an Uint8Array is still an Uint8Array
     // as it arrives on the worker. Chrome added this with version 15.
-    if (!globalScope.PDFJS.disableWorker && typeof Worker !== 'undefined') {
+    var loadWorker = function() {
       var workerSrc = PDFJS.workerSrc;
       if (!workerSrc) {
         error('No PDFJS.workerSrc specified');
       }
 
-      this.loadWorkerXHR(workerSrc).then(function(blob) {
-      workerSrc = PDFJS.workerSrc = blob;
-
       try {
         // Some versions of FF can't create a worker on localhost, see:
         // https://bugzilla.mozilla.org/show_bug.cgi?id=683280
         var worker = new Worker(workerSrc);
+        worker.onerror = workerError;
+
         var messageHandler = new MessageHandler('main', worker);
         this.messageHandler = messageHandler;
 
@@ -3618,14 +3635,14 @@ var WorkerTransport = (function WorkerTransportClosure() {
         return;
       } catch (e) {
         info('The worker has been disabled.');
-        this.setupFakeWorker();
+        workerError();
       }
-
-      }.bind(this));
-    }
+    }.bind(this);
     // Either workers are disabled, not supported or have thrown an exception.
     // Thus, we fallback to a faked worker.
-    if (globalScope.PDFJS.disableWorker || typeof Worker === 'undefined') {
+    if (!globalScope.PDFJS.disableWorker && typeof Worker !== 'undefined') {
+      loadWorker();
+    } else {
       this.setupFakeWorker();
     }
   }
