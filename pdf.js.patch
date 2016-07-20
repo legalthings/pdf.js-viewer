@@ -1,5 +1,5 @@
---- pdf.orig.js	2016-06-20 13:34:52.370608323 +0200
-+++ pdf.js	2016-06-20 13:35:36.670757885 +0200
+--- pdf.orig.js	2016-07-20 16:12:49.867043350 +0200
++++ pdf.js	2016-07-20 18:22:07.715047421 +0200
 @@ -826,7 +826,9 @@
    function getL10nData(key, args, fallback) {
      var data = gL10nData[key];
@@ -11,7 +11,75 @@
        if (!fallback) {
          return null;
        }
-@@ -10289,10 +10291,17 @@
+@@ -1084,7 +1086,6 @@
+ 'use strict';
+ 
+ var globalScope = (typeof window === 'undefined') ? this : window;
+-
+ var isWorker = (typeof window === 'undefined');
+ 
+ var FONT_IDENTITY_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
+@@ -3534,6 +3535,31 @@
+  */
+ var WorkerTransport = (function WorkerTransportClosure() {
+   function WorkerTransport(workerInitializedCapability, pdfDataRangeTransport) {
++    /**
++     * Needed because workers cannot load scripts outside of the current origin (as of firefox v45).
++     * This patch does require the worker script to be served with a (Access-Control-Allow-Origin: *) header
++     * @patch
++     */
++    globalScope.cachedJSDfd = null;
++    this.loadWorkerXHR = function(url){
++      if (globalScope.cachedJSDfd) { return globalScope.cachedJSDfd; }
++      globalScope.cachedJSDfd = PDFJS.createPromiseCapability();
++
++      var xmlhttp;
++      xmlhttp = new XMLHttpRequest();
++
++      xmlhttp.onreadystatechange = function(){
++        if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
++          var workerJSBlob = new Blob([xmlhttp.responseText], { type: 'text/javascript' });
++          globalScope.cachedJSDfd.resolve(window.URL.createObjectURL(workerJSBlob));
++        }
++      };
++
++      xmlhttp.open('GET', url, true);
++      xmlhttp.send();
++      return globalScope.cachedJSDfd.promise;
++    }
++
+     this.pdfDataRangeTransport = pdfDataRangeTransport;
+     this.workerInitializedCapability = workerInitializedCapability;
+     this.commonObjs = new PDFObjects();
+@@ -3555,6 +3581,9 @@
+         error('No PDFJS.workerSrc specified');
+       }
+ 
++      this.loadWorkerXHR(workerSrc).then(function(blob) {
++      workerSrc = PDFJS.workerSrc = blob;
++
+       try {
+         // Some versions of FF can't create a worker on localhost, see:
+         // https://bugzilla.mozilla.org/show_bug.cgi?id=683280
+@@ -3589,11 +3618,16 @@
+         return;
+       } catch (e) {
+         info('The worker has been disabled.');
++        this.setupFakeWorker();
+       }
++
++      }.bind(this));
+     }
+     // Either workers are disabled, not supported or have thrown an exception.
+     // Thus, we fallback to a faked worker.
+-    this.setupFakeWorker();
++    if (globalScope.PDFJS.disableWorker || typeof Worker === 'undefined') {
++      this.setupFakeWorker();
++    }
+   }
+   WorkerTransport.prototype = {
+     destroy: function WorkerTransport_destroy() {
+@@ -10289,10 +10323,17 @@
  var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
  var DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
  
@@ -33,7 +101,7 @@
  
  var mozL10n = document.mozL10n || document.webL10n;
  
-@@ -11740,7 +11749,7 @@
+@@ -11740,7 +11781,7 @@
       * @returns {number}
       */
      get pagesCount() {
@@ -42,7 +110,7 @@
      },
  
      /**
-@@ -13192,7 +13201,11 @@
+@@ -13192,7 +13233,11 @@
            !(container = element.parentNode)) {
          throw new Error('Not enough parameters.');
        } else if (this.overlays[name]) {
@@ -55,7 +123,7 @@
        }
        this.overlays[name] = { element: element,
                                container: container,
-@@ -16485,7 +16498,7 @@
+@@ -16485,7 +16530,7 @@
    },
  
    get pagesCount() {
@@ -64,7 +132,7 @@
    },
  
    set page(val) {
-@@ -17021,7 +17034,9 @@
+@@ -17021,7 +17066,9 @@
    cleanup: function pdfViewCleanup() {
      this.pdfViewer.cleanup();
      this.pdfThumbnailViewer.cleanup();
@@ -75,7 +143,7 @@
    },
  
    forceRendering: function pdfViewForceRendering() {
-@@ -17462,7 +17477,12 @@
+@@ -17462,7 +17509,12 @@
    }
  }
  
@@ -85,11 +153,11 @@
 +  if (src) DEFAULT_URL = src;
 +
 +  webViewerLoad();
-+}
++}}
  
  document.addEventListener('pagerendered', function (e) {
    var pageNumber = e.detail.pageNumber;
-@@ -17585,7 +17605,7 @@
+@@ -17585,7 +17637,7 @@
  });
  
  window.addEventListener('hashchange', function webViewerHashchange(evt) {
@@ -98,7 +166,7 @@
      var hash = document.location.hash.substring(1);
      if (!hash) {
        return;
-@@ -17598,7 +17618,7 @@
+@@ -17598,7 +17650,7 @@
    }
  });
  
@@ -107,7 +175,7 @@
    var files = evt.target.files;
    if (!files || files.length === 0) {
      return;
-@@ -17627,7 +17647,7 @@
+@@ -17627,7 +17679,7 @@
      setAttribute('hidden', 'true');
    document.getElementById('download').setAttribute('hidden', 'true');
    document.getElementById('secondaryDownload').setAttribute('hidden', 'true');
@@ -116,7 +184,7 @@
  
  function selectScaleOption(value) {
    var options = document.getElementById('scaleSelect').options;
-@@ -17738,6 +17758,9 @@
+@@ -17738,6 +17790,9 @@
  }, true);
  
  function handleMouseWheel(evt) {
