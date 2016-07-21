@@ -1,5 +1,5 @@
---- pdf.orig.js	2016-06-20 13:34:52.370608323 +0200
-+++ pdf.js	2016-06-20 13:35:36.670757885 +0200
+--- pdf.orig.js	2016-07-20 16:12:49.867043350 +0200
++++ pdf.js	2016-07-21 00:20:32.536984707 +0200
 @@ -826,7 +826,9 @@
    function getL10nData(key, args, fallback) {
      var data = gL10nData[key];
@@ -11,7 +11,91 @@
        if (!fallback) {
          return null;
        }
-@@ -10289,10 +10291,17 @@
+@@ -3544,12 +3546,54 @@
+     this.pagePromises = [];
+     this.downloadInfoCapability = createPromiseCapability();
+ 
++    /**
++     * Needed because workers cannot load scripts outside of the current origin (as of firefox v45).
++     * This patch does require the worker script to be served with a (Access-Control-Allow-Origin: *) header
++     * @patch
++     */
++    var loadWorkerXHR = function(){
++      var url = PDFJS.workerSrc;
++      var jsdfd = PDFJS.createPromiseCapability();
++
++      if (url.match(/^blob:/) || typeof URL.createObjectURL === 'undefined') {
++        jsdfd.reject(); // Failed loading using blob
++      }
++
++      var xmlhttp;
++      xmlhttp = new XMLHttpRequest();
++
++      xmlhttp.onreadystatechange = function(){
++        if (xmlhttp.readyState != 4) return;
++
++        if (xmlhttp.status == 200) {
++          info('Loaded worker source through XHR.');
++          var workerJSBlob = new Blob([xmlhttp.responseText], { type: 'text/javascript' });
++          jsdfd.resolve(window.URL.createObjectURL(workerJSBlob));
++        } else {
++          jsdfd.reject();
++        }
++      };
++
++      xmlhttp.open('GET', url, true);
++      xmlhttp.send();
++      return jsdfd.promise;
++    }
++
++    var workerError = function() {
++      loadWorkerXHR().then(function(blob) {
++        PDFJS.workerSrc = blob;
++        loadWorker();
++      }, function() {
++        this.setupFakeWorker();
++      }.bind(this));
++    }.bind(this);
++
+     // If worker support isn't disabled explicit and the browser has worker
+     // support, create a new web worker and test if it/the browser fullfills
+     // all requirements to run parts of pdf.js in a web worker.
+     // Right now, the requirement is, that an Uint8Array is still an Uint8Array
+     // as it arrives on the worker. Chrome added this with version 15.
+-    if (!globalScope.PDFJS.disableWorker && typeof Worker !== 'undefined') {
++    var loadWorker = function() {
+       var workerSrc = PDFJS.workerSrc;
+       if (!workerSrc) {
+         error('No PDFJS.workerSrc specified');
+@@ -3559,6 +3603,8 @@
+         // Some versions of FF can't create a worker on localhost, see:
+         // https://bugzilla.mozilla.org/show_bug.cgi?id=683280
+         var worker = new Worker(workerSrc);
++        worker.onerror = workerError;
++
+         var messageHandler = new MessageHandler('main', worker);
+         this.messageHandler = messageHandler;
+ 
+@@ -3589,11 +3635,16 @@
+         return;
+       } catch (e) {
+         info('The worker has been disabled.');
++        workerError();
+       }
+-    }
++    }.bind(this);
+     // Either workers are disabled, not supported or have thrown an exception.
+     // Thus, we fallback to a faked worker.
+-    this.setupFakeWorker();
++    if (!globalScope.PDFJS.disableWorker && typeof Worker !== 'undefined') {
++      loadWorker();
++    } else {
++      this.setupFakeWorker();
++    }
+   }
+   WorkerTransport.prototype = {
+     destroy: function WorkerTransport_destroy() {
+@@ -10289,10 +10340,17 @@
  var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
  var DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
  
@@ -33,7 +117,7 @@
  
  var mozL10n = document.mozL10n || document.webL10n;
  
-@@ -11740,7 +11749,7 @@
+@@ -11740,7 +11798,7 @@
       * @returns {number}
       */
      get pagesCount() {
@@ -42,7 +126,7 @@
      },
  
      /**
-@@ -13192,7 +13201,11 @@
+@@ -13192,7 +13250,11 @@
            !(container = element.parentNode)) {
          throw new Error('Not enough parameters.');
        } else if (this.overlays[name]) {
@@ -55,7 +139,7 @@
        }
        this.overlays[name] = { element: element,
                                container: container,
-@@ -16485,7 +16498,7 @@
+@@ -16485,7 +16547,7 @@
    },
  
    get pagesCount() {
@@ -64,7 +148,7 @@
    },
  
    set page(val) {
-@@ -17021,7 +17034,9 @@
+@@ -17021,7 +17083,9 @@
    cleanup: function pdfViewCleanup() {
      this.pdfViewer.cleanup();
      this.pdfThumbnailViewer.cleanup();
@@ -75,7 +159,7 @@
    },
  
    forceRendering: function pdfViewForceRendering() {
-@@ -17462,7 +17477,12 @@
+@@ -17462,7 +17526,12 @@
    }
  }
  
@@ -85,11 +169,11 @@
 +  if (src) DEFAULT_URL = src;
 +
 +  webViewerLoad();
-+}
++};
  
  document.addEventListener('pagerendered', function (e) {
    var pageNumber = e.detail.pageNumber;
-@@ -17585,7 +17605,7 @@
+@@ -17585,7 +17654,7 @@
  });
  
  window.addEventListener('hashchange', function webViewerHashchange(evt) {
@@ -98,7 +182,7 @@
      var hash = document.location.hash.substring(1);
      if (!hash) {
        return;
-@@ -17598,7 +17618,7 @@
+@@ -17598,7 +17667,7 @@
    }
  });
  
@@ -107,7 +191,7 @@
    var files = evt.target.files;
    if (!files || files.length === 0) {
      return;
-@@ -17627,7 +17647,7 @@
+@@ -17627,7 +17696,7 @@
      setAttribute('hidden', 'true');
    document.getElementById('download').setAttribute('hidden', 'true');
    document.getElementById('secondaryDownload').setAttribute('hidden', 'true');
@@ -116,7 +200,7 @@
  
  function selectScaleOption(value) {
    var options = document.getElementById('scaleSelect').options;
-@@ -17738,6 +17758,9 @@
+@@ -17738,6 +17807,9 @@
  }, true);
  
  function handleMouseWheel(evt) {
