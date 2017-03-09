@@ -116,17 +116,17 @@ so it can be called in JavaScript with `PDFJS.webViewerLoad()`.
     +  webViewerLoad();
     +}
 
-On several places the code assumes that a PDF is loaded, which (because of the explicit load) might not be the case. We
-need to check if `pdfDocument` is set before using it.
+~~On several places the code assumes that a PDF is loaded, which (because of the explicit load) might not be the case. We
+need to check if `pdfDocument` is set before using it.~~ This is fixed in v1.6.210 of PDF.js
 
-##### PDFViewerApplication.pagesCount() and PDFLinkService.pagesCount()
+##### ~~PDFViewerApplication.pagesCount() and PDFLinkService.pagesCount()
 
          get pagesCount() {
     -      return this.pdfDocument.numPages;
     +      return this.pdfDocument ? this.pdfDocument.numPages : 0;
          },
 
-_The pagesCount method for both `PDFViewerApplication` and `PDFLinkService`. Both need to be patched._
+~~_The pagesCount method for both `PDFViewerApplication` and `PDFLinkService`. Both need to be patched._
 
 ##### PDFViewerApplication.cleanup()
 
@@ -165,34 +165,46 @@ This patch causes pdf.js to unregister an unusued (closed) overlay.
 Whenever a file dialog is used (so with any `<input type="file">` on the page), the file is loaded into the pdf.js
 viewer. We don't want this behaviour, so comment it out.
 
-    -window.addEventListener('change', function webViewerChange(evt) {
-    +/*window.addEventListener('change', function webViewerChange(evt) {
-       var files = evt.target.files;
-       if (!files || files.length === 0) {
-         return;
-    @@ -17627,7 +17647,7 @@
-         setAttribute('hidden', 'true');
-       document.getElementById('download').setAttribute('hidden', 'true');
-       document.getElementById('secondaryDownload').setAttribute('hidden', 'true');
-    -}, true);
-    +}, true);*/
+      window.addEventListener('beforeprint', function windowBeforePrint() {
+      eventBus.dispatch('beforeprint');
+    });
+    window.addEventListener('afterprint', function windowAfterPrint() {
+      eventBus.dispatch('afterprint');
+     });
+    +  /* PATCHED
+     window.addEventListener('change', function windowChange(evt) {
+      var files = evt.target.files;
+      if (!files || files.length === 0) {
+        return;
+      }
+      eventBus.dispatch('fileinputchange', { fileInput: evt.target });
+     });
+    +  */
+     }
+    };
+    var validateFileURL;
+    var HOSTED_VIEWER_ORIGINS = [
+      'null',
+      'http://mozilla.github.io',
 
-#### handleMouseWheel()
 
-The JavaScript pdf.js file might be loaded while the viewer isn't being displayed. This causes an error on mouse move.
-We need to check if the viewer is initialized, before handling the event.
+#### ~~handleMouseWheel()
+
+~~The JavaScript pdf.js file might be loaded while the viewer isn't being displayed. This causes an error on mouse move.
+We need to check if the viewer is initialized, before handling the event.~~ There is no such function in v1.6.210 of PDF.js
 
      function handleMouseWheel(evt) {
     +  // Ignore mousewheel event if pdfViewer isn't loaded
     +  if (!PDFViewerApplication.pdfViewer) return;
 
-#### Load code for worker using AJAX if needed
+#### ~~Load code for worker using AJAX if needed
 
-A [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can't use code from
+This has been fixed in v1.6.210 of PDF.js
+~~A [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can't use code from
 a same-origin domain. The CORS headers don't apply.
 
-he patch will cause pdf.js to first try to create the Worker the regular way, with a URL to the JavaScript source. If
-this fails, the source if fetched using AJAX and used to create an
+~~The patch will cause pdf.js to first try to create the Worker the regular way, with a URL to the JavaScript source. If
+this fails, the source is fetched using AJAX and used to create an
 [object url](https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL). If this also fails, pdf.js will go
 onto it's last resort by calling `setupFakeWorker()`.
 
