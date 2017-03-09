@@ -12,11 +12,11 @@ if [[ ! -f "$source/build/pdf.js" ]]; then
   exit 1
 fi
 
-cat "$source/web/l10n.js" "$source/build/pdf.js" "$source/web/compatibility.js" "$source/web/debugger.js" "$source/web/viewer.js" > pdf.js
-patch pdf.js < pdf.js.patch
+cat "$source/web/l10n.js" "$source/build/pdf.js" "$source/web/debugger.js" "$source/web/viewer.js" > pdf.js
+patch -u pdf.js < pdf.js.patch
 
 cp "$source/build/pdf.worker.js" .
-patch pdf.worker.js < pdf.worker.js.patch
+#patch pdf.worker.js < pdf.worker.js.patch
 
 uglifycss "$source/web/viewer.css" > viewer.css
 node grunt/css-prefix.js viewer.css viewer.css pdfjs
