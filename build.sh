@@ -18,6 +18,8 @@ patch -u pdf.js < pdf.js.patch
 cp "$source/build/pdf.worker.js" .
 #patch pdf.worker.js < pdf.worker.js.patch
 
+cat "$source/web/viewer.html" | tr '\n' '\f' | sed -r 's/^.+<body [^>]*>/<pdfjs-wrapper>/' | sed -r 's/<\/body>.+$/<\/pdfjs-wrapper>/' | tr '\f' '\n' > ./viewer.html
+
 uglifycss "$source/web/viewer.css" > viewer.css
 node grunt/css-prefix.js viewer.css viewer.css pdfjs
 
