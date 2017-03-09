@@ -119,13 +119,6 @@ so it can be called in JavaScript with `PDFJS.webViewerLoad()`.
 ~~On several places the code assumes that a PDF is loaded, which (because of the explicit load) might not be the case. We
 need to check if `pdfDocument` is set before using it.~~ This is fixed in v1.6.210 of PDF.js
 
-##### PDFViewerApplication.pagesCount() and PDFLinkService.pagesCount()
-
-         get pagesCount() {
-    -      return this.pdfDocument.numPages;
-    +      return this.pdfDocument ? this.pdfDocument.numPages : 0;
-         },
-
 ~~The pagesCount method for both `PDFViewerApplication` and `PDFLinkService`. Both need to be patched.~~
 
 ##### PDFViewerApplication.cleanup()
@@ -193,10 +186,6 @@ viewer. We don't want this behaviour, so comment it out.
 ~~The JavaScript pdf.js file might be loaded while the viewer isn't being displayed. This causes an error on mouse move.
 We need to check if the viewer is initialized, before handling the event.~~ There is no such function in v1.6.210 of PDF.js
 
-     function handleMouseWheel(evt) {
-    +  // Ignore mousewheel event if pdfViewer isn't loaded
-    +  if (!PDFViewerApplication.pdfViewer) return;
-
 #### Load code for worker using AJAX if needed
 
 This has been fixed in v1.6.210 of PDF.js
@@ -208,79 +197,3 @@ a same-origin domain. The CORS headers don't apply.~~
 this fails, the source is fetched using AJAX and used to create an~~
 [object url](https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL). ~~If this also fails, pdf.js will go
 onto it's last resort by calling `setupFakeWorker()`.~~
-
-    +    /**
-    +     * Needed because workers cannot load scripts outside of the current origin (as of firefox v45).
-    +     * This patch does require the worker script to be served with a (Access-Control-Allow-Origin: *) header
-    +     * @patch
-    +     */
-    +    var loadWorkerXHR = function(){
-    +      var url = PDFJS.workerSrc;
-    +      var jsdfd = PDFJS.createPromiseCapability();
-    +
-    +      if (url.match(/^blob:/) || typeof URL.createObjectURL === 'undefined') {
-    +        jsdfd.reject(); // Failed loading using blob
-    +      }
-    +
-    +      var xmlhttp;
-    +      xmlhttp = new XMLHttpRequest();
-    +
-    +      xmlhttp.onreadystatechange = function(){
-    +        if (xmlhttp.readyState != 4) return;
-    +
-    +        if (xmlhttp.status == 200) {
-    +          info('Loaded worker source through XHR.');
-    +          var workerJSBlob = new Blob([xmlhttp.responseText], { type: 'text/javascript' });
-    +          jsdfd.resolve(window.URL.createObjectURL(workerJSBlob));
-    +        } else {
-    +          jsdfd.reject();
-    +        }
-    +      };
-    +
-    +      xmlhttp.open('GET', url, true);
-    +      xmlhttp.send();
-    +      return jsdfd.promise;
-    +    }
-    +
-    +    var workerError = function() {
-    +      loadWorkerXHR().then(function(blob) {
-    +        PDFJS.workerSrc = blob;
-    +        loadWorker();
-    +      }, function() {
-    +        this.setupFakeWorker();
-    +      }.bind(this));
-    +    }.bind(this);
-    +
-    
-    -    if (!globalScope.PDFJS.disableWorker && typeof Worker !== 'undefined') {
-    +    var loadWorker = function() {
-           var workerSrc = PDFJS.workerSrc;
-           if (!workerSrc) {
-             error('No PDFJS.workerSrc specified');
-    @@ -3559,6 +3603,8 @@
-             // Some versions of FF can't create a worker on localhost, see:
-             // https://bugzilla.mozilla.org/show_bug.cgi?id=683280
-             var worker = new Worker(workerSrc);
-    +        worker.onerror = workerError;
-    +
-             var messageHandler = new MessageHandler('main', worker);
-             this.messageHandler = messageHandler;
-    
-    @@ -3589,11 +3635,16 @@
-             return;
-           } catch (e) {
-             info('The worker has been disabled.');
-    +        workerError();
-           }
-    -    }
-    +    }.bind(this);
-         // Either workers are disabled, not supported or have thrown an exception.
-         // Thus, we fallback to a faked worker.
-    -    this.setupFakeWorker();
-    +    if (!globalScope.PDFJS.disableWorker && typeof Worker !== 'undefined') {
-    +      loadWorker();
-    +    } else {
-    +      this.setupFakeWorker();
-    +    }
-       }
-
