@@ -119,14 +119,14 @@ so it can be called in JavaScript with `PDFJS.webViewerLoad()`.
 ~~On several places the code assumes that a PDF is loaded, which (because of the explicit load) might not be the case. We
 need to check if `pdfDocument` is set before using it.~~ This is fixed in v1.6.210 of PDF.js
 
-##### ~~PDFViewerApplication.pagesCount() and PDFLinkService.pagesCount()
+##### PDFViewerApplication.pagesCount() and PDFLinkService.pagesCount()
 
          get pagesCount() {
     -      return this.pdfDocument.numPages;
     +      return this.pdfDocument ? this.pdfDocument.numPages : 0;
          },
 
-~~_The pagesCount method for both `PDFViewerApplication` and `PDFLinkService`. Both need to be patched._
+~~The pagesCount method for both `PDFViewerApplication` and `PDFLinkService`. Both need to be patched.~~
 
 ##### PDFViewerApplication.cleanup()
 
@@ -188,7 +188,7 @@ viewer. We don't want this behaviour, so comment it out.
       'http://mozilla.github.io',
 
 
-#### ~~handleMouseWheel()
+#### handleMouseWheel()
 
 ~~The JavaScript pdf.js file might be loaded while the viewer isn't being displayed. This causes an error on mouse move.
 We need to check if the viewer is initialized, before handling the event.~~ There is no such function in v1.6.210 of PDF.js
@@ -197,7 +197,7 @@ We need to check if the viewer is initialized, before handling the event.~~ Ther
     +  // Ignore mousewheel event if pdfViewer isn't loaded
     +  if (!PDFViewerApplication.pdfViewer) return;
 
-#### ~~Load code for worker using AJAX if needed
+#### Load code for worker using AJAX if needed
 
 This has been fixed in v1.6.210 of PDF.js
 ~~A [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can't use code from
