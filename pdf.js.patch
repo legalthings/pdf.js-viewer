@@ -1,5 +1,5 @@
 --- pdf_old.js	2017-03-09 15:28:38.000000000 +0200
-+++ pdf.js	2017-03-09 16:16:30.545662100 +0200
++++ pdf.js	2017-03-09 19:13:56.885662100 +0200
 @@ -827,7 +827,12 @@
    function getL10nData(key, args, fallback) {
      var data = gL10nData[key];
@@ -68,23 +68,17 @@
    }
   },
   forceRendering: function pdfViewForceRendering() {
-@@ -13619,6 +13647,7 @@
-   window.addEventListener('afterprint', function windowAfterPrint() {
-    eventBus.dispatch('afterprint');
-   });
-+  /* PATCHED
-   window.addEventListener('change', function windowChange(evt) {
-    var files = evt.target.files;
+@@ -13624,6 +13652,9 @@
     if (!files || files.length === 0) {
-@@ -13626,6 +13655,7 @@
+     return;
     }
++   // === patch start ===
++   if(evt.target.id == PDFViewerApplication.appConfig.openFileInputName)
++   // === patch end ===
     eventBus.dispatch('fileinputchange', { fileInput: evt.target });
    });
-+  */
   }
- };
- var validateFileURL;
-@@ -19426,7 +19456,14 @@
+@@ -19426,7 +19457,14 @@
  if (document.readyState === 'interactive' || document.readyState === 'complete') {
   webViewerLoad();
  } else {

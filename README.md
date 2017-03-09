@@ -158,27 +158,13 @@ This patch causes pdf.js to unregister an unusued (closed) overlay.
 Whenever a file dialog is used (so with any `<input type="file">` on the page), the file is loaded into the pdf.js
 viewer. We don't want this behaviour, so comment it out.
 
-      window.addEventListener('beforeprint', function windowBeforePrint() {
-      eventBus.dispatch('beforeprint');
-    });
-    window.addEventListener('afterprint', function windowAfterPrint() {
-      eventBus.dispatch('afterprint');
-     });
-    +  /* PATCHED
-     window.addEventListener('change', function windowChange(evt) {
-      var files = evt.target.files;
-      if (!files || files.length === 0) {
-        return;
+        if (!files || files.length === 0) {
+         return;
+        }
+    +   if(evt.target.id == PDFViewerApplication.appConfig.openFileInputName)
+        eventBus.dispatch('fileinputchange', { fileInput: evt.target });
+       });
       }
-      eventBus.dispatch('fileinputchange', { fileInput: evt.target });
-     });
-    +  */
-     }
-    };
-    var validateFileURL;
-    var HOSTED_VIEWER_ORIGINS = [
-      'null',
-      'http://mozilla.github.io',
 
 
 #### handleMouseWheel()
