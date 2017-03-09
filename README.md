@@ -200,13 +200,14 @@ We need to check if the viewer is initialized, before handling the event.~~ Ther
 #### Load code for worker using AJAX if needed
 
 This has been fixed in v1.6.210 of PDF.js
-~~A [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can't use code from
-a same-origin domain. The CORS headers don't apply.
+
+A [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) ~~can't use code from
+a same-origin domain. The CORS headers don't apply.~~
 
 ~~The patch will cause pdf.js to first try to create the Worker the regular way, with a URL to the JavaScript source. If
-this fails, the source is fetched using AJAX and used to create an
-[object url](https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL). If this also fails, pdf.js will go
-onto it's last resort by calling `setupFakeWorker()`.
+this fails, the source is fetched using AJAX and used to create an~~
+[object url](https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL). ~~If this also fails, pdf.js will go
+onto it's last resort by calling `setupFakeWorker()`.~~
 
     +    /**
     +     * Needed because workers cannot load scripts outside of the current origin (as of firefox v45).
