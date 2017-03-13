@@ -22,7 +22,6 @@ node node_modules/uglifycss/uglifycss "$source/web/viewer.css" > viewer.css
 node grunt/css-prefix.js viewer.css viewer.css pdfjs
 cat viewer-overwrites.css >> viewer.css;
 
-sed -r 's/url\((")?images\//url\(\1@pdfjsImagePath\//g' < viewer.css | node node_modules/uglifycss/uglifycss > viewer.less
-node grunt/css-prefix.js viewer.less viewer.less pdfjs
+sed -r 's/url\((")?images\//url\(\1@pdfjsImagePath\//g' < viewer.css > viewer.less
 
 cp "$source/web/cmaps/" "$source/web/images/" "$source/web/locale/" . -a
