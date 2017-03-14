@@ -43,12 +43,12 @@ Include `viewer.html` using [SSI](http://httpd.apache.org/docs/2.4/howto/ssi.htm
 
 ## Upgrading the source
 
-Normally mozilla's PDF js viewer, will only run as standalone. We forked the project and patched it, so you can include it within a
-page.
+Normally mozilla's PDF js viewer, will only run as standalone. We forked the project and patched it, so you can include it 
+within a page.
 
 To update this version, get the patched pdf.js source code and build the project
 
-    git https://github.com/legalthings/pdf.js.git
+    git clone https://github.com/legalthings/pdf.js.git
     cd pdf.js
     npm install
     gulp generic
