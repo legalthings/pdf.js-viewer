@@ -24,4 +24,4 @@ cat viewer-overwrites.css >> viewer.css;
 
 sed -r 's/url\((")?images\//url\(\1@pdfjsImagePath\//g' < viewer.css > viewer.less
 
-cp "$source/web/cmaps/" "$source/web/images/" "$source/web/locale/" . -a
+cp -a "$source/web/cmaps/" "$source/web/images/" "$source/web/locale/" .
