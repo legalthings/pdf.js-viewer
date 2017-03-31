@@ -35,7 +35,14 @@ Include `viewer.html` using [SSI](http://httpd.apache.org/docs/2.4/howto/ssi.htm
     </div>
 
     <script>
-      PDFJS.webViewerLoad('some-document.pdf');
+      // note that the file can also be a Uint8Array if you want to serve binary data
+      var file = 'some-document.pdf'; 
+
+      // This initializes the webviewer, the file may be passed in to it to initialize the viewer with a pdf directly
+      window.PDFJS.webViewerLoad(); 
+
+      // open a file in the viewer
+      window.PDFViewerApplication.open(file);
     </script>
   </body>
 </html>
@@ -43,7 +50,7 @@ Include `viewer.html` using [SSI](http://httpd.apache.org/docs/2.4/howto/ssi.htm
 
 ## Upgrading the source
 
-Normally mozilla's PDF js viewer, will only run as standalone. We forked the project and patched it, so you can include it 
+Normally mozilla's PDF js viewer, will only run as standalone. We forked the project and patched it, so you can include it
 within a page.
 
 To update this version, get the patched pdf.js source code and build the project
