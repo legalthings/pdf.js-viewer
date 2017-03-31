@@ -19443,8 +19443,7 @@ if (document.readyState === 'interactive' || document.readyState === 'complete')
  webViewerLoad();
 } else {
  PDFJS.webViewerLoad = function (src) {
-  if (src)
-   DEFAULT_URL = src;
+  DEFAULT_URL = src;
   webViewerLoad();
  };
 }
