@@ -13212,7 +13212,7 @@ var PDFViewerApplication = {
    if (args.length) {
     this.pdfDocumentProperties.setFileSize(args.length);
    }
-   if (args.url) {
+   if (parameters.data && args.url) {
      this.setTitleUsingUrl(args.url);
    }
   }
