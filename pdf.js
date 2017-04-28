@@ -13212,6 +13212,9 @@ var PDFViewerApplication = {
    if (args.length) {
     this.pdfDocumentProperties.setFileSize(args.length);
    }
+   if (parameters.data && args.url) {
+     this.setTitleUsingUrl(args.url);
+   }
   }
   var self = this;
   self.downloadComplete = false;
@@ -13690,7 +13693,8 @@ function webViewerInitialized() {
  var queryString = document.location.search.substring(1);
  var params = parseQueryString(queryString);
  file = 'file' in params ? params.file : appConfig.defaultUrl;
- validateFileURL(file);
+ if(file)
+    validateFileURL(file);
  var waitForBeforeOpening = [];
  var fileInput = document.createElement('input');
  fileInput.id = appConfig.openFileInputName;
