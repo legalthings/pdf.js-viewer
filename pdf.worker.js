@@ -31,9 +31,9 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	function __w_pdfjs_require__(moduleId) {
 /******/
 /******/ 		// Check if module is in cache
-/******/ 		if(installedModules[moduleId])
+/******/ 		if(installedModules[moduleId]) {
 /******/ 			return installedModules[moduleId].exports;
-/******/
+/******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = installedModules[moduleId] = {
 /******/ 			i: moduleId,
@@ -88,7 +88,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__w_pdfjs_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __w_pdfjs_require__(__w_pdfjs_require__.s = 37);
+/******/ 	return __w_pdfjs_require__(__w_pdfjs_require__.s = 36);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -97,7 +97,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 "use strict";
 /* WEBPACK VAR INJECTION */(function(global) {
-var compatibility = __w_pdfjs_require__(36);
+var compatibility = __w_pdfjs_require__(37);
 var globalScope = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : this;
 var FONT_IDENTITY_MATRIX = [
  0.001,
@@ -35532,9 +35532,6 @@ var WidgetAnnotation = function WidgetAnnotationClosure() {
    data.fieldFlags = 0;
   }
   data.readOnly = this.hasFieldFlag(AnnotationFieldFlag.READONLY);
-  if (data.fieldType === 'Sig') {
-   this.setFlags(AnnotationFlag.HIDDEN);
-  }
  }
  Util.inherit(WidgetAnnotation, Annotation, {
   _constructFieldName: function WidgetAnnotation_constructFieldName(dict) {
@@ -49652,6 +49649,20 @@ exports.Type1Parser = Type1Parser;
 /***/ (function(module, exports, __w_pdfjs_require__) {
 
 "use strict";
+
+var pdfjsVersion = '1.7.367';
+var pdfjsBuild = '706eec84';
+var pdfjsCoreWorker = __w_pdfjs_require__(8);
+{
+ __w_pdfjs_require__(19);
+}
+exports.WorkerMessageHandler = pdfjsCoreWorker.WorkerMessageHandler;
+
+/***/ }),
+/* 37 */
+/***/ (function(module, exports, __w_pdfjs_require__) {
+
+"use strict";
 /* WEBPACK VAR INJECTION */(function(global) {
 if (typeof PDFJS === 'undefined' || !PDFJS.compatibilityChecked) {
  var globalScope = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : this;
@@ -51065,20 +51076,6 @@ if (typeof PDFJS === 'undefined' || !PDFJS.compatibilityChecked) {
  }());
 }
 /* WEBPACK VAR INJECTION */}.call(exports, __w_pdfjs_require__(9)))
-
-/***/ }),
-/* 37 */
-/***/ (function(module, exports, __w_pdfjs_require__) {
-
-"use strict";
-
-var pdfjsVersion = '1.7.354';
-var pdfjsBuild = '0f7548ba';
-var pdfjsCoreWorker = __w_pdfjs_require__(8);
-{
- __w_pdfjs_require__(19);
-}
-exports.WorkerMessageHandler = pdfjsCoreWorker.WorkerMessageHandler;
 
 /***/ })
 /******/ ]);
