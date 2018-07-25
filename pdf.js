@@ -14829,6 +14829,34 @@ exports.Preferences = Preferences;
 
 "use strict";
 
+// Kainos edit Related with bug https://github.com/mozilla/pdf.js/issues/9919
+// Based on https://stackoverflow.com/a/21712356
+function detectIE() {
+  var ua = window.navigator.userAgent;
+
+  var msie = ua.indexOf('MSIE ');
+  if (msie > 0) {
+      // IE 10 or older => return version number
+      return parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
+  }
+
+  var trident = ua.indexOf('Trident/');
+  if (trident > 0) {
+      // IE 11 => return version number
+      var rv = ua.indexOf('rv:');
+      return parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
+  }
+
+  var edge = ua.indexOf('Edge/');
+  if (edge > 0) {
+     // Edge (IE 12+) => return version number
+     return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
+  }
+
+  // other browser
+  return false;
+}
+
 var uiUtils = __webpack_require__(0);
 var overlayManager = __webpack_require__(4);
 var app = __webpack_require__(6);
@@ -14844,8 +14872,13 @@ function renderPage(activeServiceOnEntry, pdfDocument, pageNumber, size) {
  var PRINT_UNITS = PRINT_RESOLUTION / 72.0;
  scratchCanvas.width = Math.floor(size.width * PRINT_UNITS);
  scratchCanvas.height = Math.floor(size.height * PRINT_UNITS);
- var width = Math.floor(size.width * CSS_UNITS) + 'px';
- var height = Math.floor(size.height * CSS_UNITS) + 'px';
+ // KAINOS edit: Related with bug https://github.com/mozilla/pdf.js/issues/9919
+ // Added 0.92 scale factor to match canvas image to print viewport
+ // Issue occurs only in IE11 and MS Edge
+ var scaleFixFactor = detectIE() ? 0.92 : 1;
+
+ var width = Math.floor(size.width * CSS_UNITS * scaleFixFactor) + 'px';
+ var height = Math.floor(size.height * CSS_UNITS * scaleFixFactor) + 'px';
  var ctx = scratchCanvas.getContext('2d');
  ctx.save();
  ctx.fillStyle = 'rgb(255, 255, 255)';
