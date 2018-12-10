@@ -12873,6 +12873,7 @@ var PDFViewerApplication = {
  url: '',
  baseUrl: '',
  externalServices: DefaultExernalServices,
+ _boundEvents: {},
  initialize: function pdfViewInitialize(appConfig) {
   var self = this;
   var PDFJS = pdfjsLib.PDFJS;
@@ -13617,32 +13618,84 @@ var PDFViewerApplication = {
   eventBus.on('findfromurlhash', webViewerFindFromUrlHash);
   eventBus.on('fileinputchange', webViewerFileInputChange);
  },
- bindWindowEvents: function pdfViewBindWindowEvents() {
-  var eventBus = this.eventBus;
-  window.addEventListener('wheel', webViewerWheel);
-  window.addEventListener('click', webViewerClick);
-  window.addEventListener('keydown', webViewerKeyDown);
-  window.addEventListener('resize', function windowResize() {
-   eventBus.dispatch('resize');
-  });
-  window.addEventListener('hashchange', function windowHashChange() {
-   eventBus.dispatch('hashchange', { hash: document.location.hash.substring(1) });
-  });
-  window.addEventListener('beforeprint', function windowBeforePrint() {
-   eventBus.dispatch('beforeprint');
-  });
-  window.addEventListener('afterprint', function windowAfterPrint() {
-   eventBus.dispatch('afterprint');
-  });
-  window.addEventListener('change', function windowChange(evt) {
-   var files = evt.target.files;
-   if (!files || files.length === 0) {
-    return;
-   }
-   if (evt.target.id == PDFViewerApplication.appConfig.openFileInputName)
-    eventBus.dispatch('fileinputchange', { fileInput: evt.target });
-  });
- }
+  bindWindowEvents: function pdfViewBindWindowEvents() {
+    var eventBus = this.eventBus,
+        _boundEvents = this._boundEvents;
+    _boundEvents.windowResize = function () {
+      eventBus.dispatch('resize');
+    };
+    _boundEvents.windowHashChange = function () {
+      eventBus.dispatch('hashchange', { hash: document.location.hash.substring(1) });
+    };
+    _boundEvents.windowBeforePrint = function () {
+      eventBus.dispatch('beforeprint');
+    };
+    _boundEvents.windowAfterPrint = function () {
+      eventBus.dispatch('afterprint');
+    };
+    _boundEvents.windowChange = function (evt) {
+      var files = evt.target.files;
+      if (!files || files.length === 0) {
+        return;
+      }
+      if (evt.target.id == PDFViewerApplication.appConfig.openFileInputName)
+        eventBus.dispatch('fileinputchange', {fileInput: evt.target});
+    };
+    window.addEventListener('wheel', webViewerWheel);
+    window.addEventListener('click', webViewerClick);
+    window.addEventListener('keydown', webViewerKeyDown);
+    window.addEventListener('resize', _boundEvents.windowResize);
+    window.addEventListener('hashchange', _boundEvents.windowHashChange);
+    window.addEventListener('beforeprint', _boundEvents.windowBeforePrint);
+    window.addEventListener('afterprint', _boundEvents.windowAfterPrint);
+    window.addEventListener('change', _boundEvents.windowChange);
+  },
+  unbindEvents: function unbindEvents() {
+    var eventBus = this.eventBus;
+    eventBus.off('resize', webViewerResize);
+    eventBus.off('hashchange', webViewerHashchange);
+    eventBus.off('beforeprint', this.beforePrint.bind(this));
+    eventBus.off('afterprint', this.afterPrint.bind(this));
+    eventBus.off('pagerendered', webViewerPageRendered);
+    eventBus.off('textlayerrendered', webViewerTextLayerRendered);
+    eventBus.off('updateviewarea', webViewerUpdateViewarea);
+    eventBus.off('pagechanging', webViewerPageChanging);
+    eventBus.off('scalechanging', webViewerScaleChanging);
+    eventBus.off('sidebarviewchanged', webViewerSidebarViewChanged);
+    eventBus.off('pagemode', webViewerPageMode);
+    eventBus.off('namedaction', webViewerNamedAction);
+    eventBus.off('presentationmodechanged', webViewerPresentationModeChanged);
+    eventBus.off('presentationmode', webViewerPresentationMode);
+    eventBus.off('openfile', webViewerOpenFile);
+    eventBus.off('print', webViewerPrint);
+    eventBus.off('download', webViewerDownload);
+    eventBus.off('firstpage', webViewerFirstPage);
+    eventBus.off('lastpage', webViewerLastPage);
+    eventBus.off('nextpage', webViewerNextPage);
+    eventBus.off('previouspage', webViewerPreviousPage);
+    eventBus.off('zoomin', webViewerZoomIn);
+    eventBus.off('zoomout', webViewerZoomOut);
+    eventBus.off('pagenumberchanged', webViewerPageNumberChanged);
+    eventBus.off('scalechanged', webViewerScaleChanged);
+    eventBus.off('rotatecw', webViewerRotateCw);
+    eventBus.off('rotateccw', webViewerRotateCcw);
+    eventBus.off('documentproperties', webViewerDocumentProperties);
+    eventBus.off('find', webViewerFind);
+    eventBus.off('findfromurlhash', webViewerFindFromUrlHash);
+    eventBus.off('fileinputchange', webViewerFileInputChange);
+  },
+  unbindWindowEvents: function unbindWindowEvents() {
+    var _boundEvents = this._boundEvents;
+
+    window.removeEventListener('wheel', webViewerWheel);
+    window.removeEventListener('click', webViewerClick);
+    window.removeEventListener('keydown', webViewerKeyDown);
+    window.removeEventListener('resize', _boundEvents.windowResize);
+    window.removeEventListener('hashchange', _boundEvents.windowHashChange);
+    window.removeEventListener('beforeprint', _boundEvents.windowBeforePrint);
+    window.removeEventListener('afterprint', _boundEvents.windowAfterPrint);
+    window.removeEventListener('change', _boundEvents.windowChange);
+  }
 };
 var validateFileURL;
 var HOSTED_VIEWER_ORIGINS = [
@@ -18685,6 +18738,9 @@ var SecondaryToolbar = function SecondaryToolbarClosure() {
   _bindClickListeners: function SecondaryToolbar_bindClickListeners() {
    this.toggleButton.addEventListener('click', this.toggle.bind(this));
    for (var button in this.buttons) {
+    if(!this.buttons.hasOwnProperty(button)) {
+     continue;
+    }
     var element = this.buttons[button].element;
     var eventName = this.buttons[button].eventName;
     var close = this.buttons[button].close;
