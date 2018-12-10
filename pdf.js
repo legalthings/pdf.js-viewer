@@ -18738,6 +18738,9 @@ var SecondaryToolbar = function SecondaryToolbarClosure() {
   _bindClickListeners: function SecondaryToolbar_bindClickListeners() {
    this.toggleButton.addEventListener('click', this.toggle.bind(this));
    for (var button in this.buttons) {
+    if(!this.buttons.hasOwnProperty(button)) {
+     continue;
+    }
     var element = this.buttons[button].element;
     var eventName = this.buttons[button].eventName;
     var close = this.buttons[button].close;
